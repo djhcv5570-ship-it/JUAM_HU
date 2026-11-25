@@ -1,0 +1,171 @@
+-- ============================================
+-- JUAM_HUD - Guardar y teletransportar posiciones
+-- ============================================
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+
+-- Evitar duplicados
+if CoreGui:FindFirstChild("JuamHudGUI") then
+    CoreGui.JuamHudGUI:Destroy()
+end
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "JuamHudGUI"
+gui.ResetOnSpawn = false
+gui.DisplayOrder = 99999
+pcall(function() gui.Parent = CoreGui end)
+if not gui.Parent then
+    gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+end
+
+-- ===== Botón flotante "J" (abrir/cerrar y arrastrable) =====
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Name = "ToggleBtn"
+toggleBtn.Size = UDim2.new(0, 55, 0, 55)
+toggleBtn.Position = UDim2.new(0, 20, 0, 200)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 30, 30)
+toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.TextSize = 22
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.Text = "J"
+toggleBtn.Parent = gui
+Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 14)
+
+-- ===== Arrastre del botón (ratón y táctil) =====
+local dragging = false
+local dragStart = nil
+local startPos = nil
+
+toggleBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = toggleBtn.Position
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if not dragging then return end
+    if input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch then
+        local delta = input.Position - dragStart
+        toggleBtn.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+        dragStart = nil
+        startPos = nil
+    end
+end)
+
+-- ===== Panel principal =====
+local main = Instance.new("Frame")
+main.Name = "MainFrame"
+main.Size = UDim2.new(0, 260, 0, 340)
+main.Position = UDim2.new(0.5, -130, 0.5, -170)
+main.BackgroundColor3 = Color3.fromRGB(45, 12, 12)
+main.BorderSizePixel = 0
+main.Visible = true
+main.Parent = gui
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 16)
+
+local stroke = Instance.new("UIStroke", main)
+stroke.Color = Color3.fromRGB(200, 30, 30)
+stroke.Thickness = 1.5
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundTransparency = 1
+title.Text = "JUAM_HUD"
+title.TextColor3 = Color3.fromRGB(255, 80, 80)
+title.TextSize = 18
+title.Font = Enum.Font.GothamBold
+title.Parent = main
+
+-- Lista vertical
+local list = Instance.new("Frame")
+list.Size = UDim2.new(1, -20, 1, -50)
+list.Position = UDim2.new(0, 10, 0, 45)
+list.BackgroundTransparency = 1
+list.Parent = main
+
+local layout = Instance.new("UIListLayout")
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Padding = UDim.new(0, 8)
+layout.Parent = list
+
+-- ===== Estado de las posiciones =====
+local tp1CFrame = nil
+local tp2CFrame = nil
+
+-- ===== Función para crear botón =====
+local function createButton(text, color, order, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 42)
+    btn.BackgroundColor3 = color
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 14
+    btn.Font = Enum.Font.GothamSemibold
+    btn.Text = text
+    btn.LayoutOrder = order
+    btn.Parent = list
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    btn.MouseButton1Click:Connect(callback)
+    return btn
+end
+
+-- ===== TP 1 =====
+createButton("Guardar TP 1", Color3.fromRGB(30, 52, 92), 1, function()
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        tp1CFrame = hrp.CFrame
+        print("TP 1 guardado")
+    end
+end)
+
+createButton("Ir a TP 1", Color3.fromRGB(200, 30, 30), 2, function()
+    if tp1CFrame then
+        local char = LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            hrp.CFrame = tp1CFrame
+        end
+    end
+end)
+
+-- ===== TP 2 =====
+createButton("Guardar TP 2", Color3.fromRGB(30, 52, 92), 3, function()
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        tp2CFrame = hrp.CFrame
+        print("TP 2 guardado")
+    end
+end)
+
+createButton("Ir a TP 2", Color3.fromRGB(200, 30, 30), 4, function()
+    if tp2CFrame then
+        local char = LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            hrp.CFrame = tp2CFrame
+        end
+    end
+end)
+
+-- ===== Abrir / cerrar =====
+toggleBtn.MouseButton1Click:Connect(function()
+    main.Visible = not main.Visible
+end)
